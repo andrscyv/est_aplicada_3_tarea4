@@ -1,0 +1,60 @@
+---
+title: "ejer_6_7"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problema 6
+
+Contamos con la siguiente matriz de correlaciones
+
+```{r , echo=FALSE}
+R <- matrix( c(1, 0.615, -0.111, -0.266,
+               0.615, 1, -0.195, -0.085,
+               -0.111, -0.195, 1, -0.269,
+               -0.266, -0.085, -0.269, 1), nrow = 4, byrow=TRUE)
+R
+corrplot(R, method="ellipse")
+```
+
+
+
+Ahora calcularemos las correlaciones canonicas construyendo la matriz A y calculando los valores propios
+
+
+
+```{r}
+
+R11 <- R[1:2, 1:2]
+R12 <- R[1:2, 3:4]
+R21 <- R[3:4, 1:2]
+R22 <- R[3:4, 3:4]
+
+(A <- solve(R11) %*% R12 %*% solve(R22) %*% R21)
+eigen(A)
+
+(B <- solve(R22) %*% R21 %*% solve(R11) %*% R12)
+eigen(B)
+```
+a.
+Así, encontramos las correlaciones canónicas muestrales que corresponden a los valores propios 0.1067 y 0.0293
+
+b. EL primer par canónico es:
+
+$$U_1 = 0.0450 X^{(1)}_1 + 0.0256X^{(1)}_2$$
+$$V_1 = -0.524 X^{(2)}_1  -0.851X^{(1)}_2$$
+
+Notamos que la primer variable canónica le da más peso a los homicidios no primarios y la segunda variable le da mayor importancia a la probabilidad de castigo.Consideramos que las variables representan índices sobre la composición de los homicidios así como de las características de la acción punitiva. Además, la segunda variable canónica tiene signos negativos pues el segundo grupo de variables se correlacionan de forma negativa con el primer grupo. La correlación canónica es relativamente pequeña.
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
