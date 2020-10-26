@@ -40,7 +40,7 @@ eigen(A)
 eigen(B)
 ```
 a.
-Así, encontramos las correlaciones canónicas muestrales que corresponden a los valores propios 0.1067 y 0.0293
+Así, encontramos las correlaciones canónicas muestrales que corresponden a la raíz cuadrada de los valores propios $\sqrt{0.1067}=0.327$ y $\sqrt{0.0293}=0.17$
 
 b. EL primer par canónico es:
 
@@ -49,12 +49,59 @@ $$V_1 = -0.524 X^{(2)}_1  -0.851X^{(1)}_2$$
 
 Notamos que la primer variable canónica le da más peso a los homicidios no primarios y la segunda variable le da mayor importancia a la probabilidad de castigo.Consideramos que las variables representan índices sobre la composición de los homicidios así como de las características de la acción punitiva. Además, la segunda variable canónica tiene signos negativos pues el segundo grupo de variables se correlacionan de forma negativa con el primer grupo. La correlación canónica es relativamente pequeña.
 
-## Including Plots
+## Problema 7
 
-You can also embed plots, for example:
+Primero cargaremos los datos
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r  echo=FALSE}
+(data <- read.csv("./bank-full.csv", header=T, sep=";"))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Y obtenemos un primer resumen de los datos
+
+```{r}
+summary(data)
+```
+
+```{r, echo=FALSE}
+as.matind <- function(z, colname) { #crea una matriz de indicadoras, z es categorica
+  z <- as.factor(z)
+  l <- levels(z)
+  b <- as.numeric(z==rep(l,each=length(z)))
+  matind <- matrix(b, length(z))
+  colnames(matind) <- paste0(paste(colname,"."), l)
+  return(matind)
+}
+```
+
+Transformaremos las variables categóricas y las representaremos con "one hot encoding". Así mismo, la variable de respuesta se transformara a una indicadora.
+
+```{r}
+datac <- data[, c(1,6,10,12,13,14,15)]
+binary_vars <- c(5, 7, 8)
+categorical_vars <- c(2,3,4,9,11,16)
+
+for (var in binary_vars ){
+  datac <- cbind(datac, as.numeric(data[, var] == "yes"))
+  colnames(datac)[ncol(datac)] <- colnames(data)[var]
+}
+
+for( var in categorical_vars){
+ datac <- cbind(datac, as.matind(data[, var], colnames(data)[var]))
+}
+
+datac <- cbind(datac, y=as.numeric(data[, 17] == "yes"))
+```
+
+```{r}
+(cca <- stats::cancor(x = datac[,1:48], y = datac[,49], ycenter =F))
+```
+
+```{r}
+ind_res <- 1
+regresor <- as.matrix(datac[,1:42]) %*% cca$xcoef[,1]
+respuesta <- datac[,49] %*% cca$ycoef
+plot(regresor, respuesta)
+```
+
+
