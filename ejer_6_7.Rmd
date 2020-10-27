@@ -7,6 +7,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r, include=F}
+library(corrplot)
+```
+
 ## Problema 6
 
 Contamos con la siguiente matriz de correlaciones
@@ -53,14 +57,14 @@ Notamos que la primer variable canónica le da más peso a los homicidios no pri
 
 Primero cargaremos los datos
 
-```{r  echo=FALSE}
-(data <- read.csv("./bank-full.csv", header=T, sep=";"))
+```{r  }
+data <- read.csv("./bank-full.csv", header=T, sep=";")
 ```
 
 Y obtenemos un primer resumen de los datos
 
-```{r}
-summary(data)
+```{r, echo=FALSE}
+str(data)
 ```
 
 ```{r, echo=FALSE}
@@ -74,13 +78,17 @@ as.matind <- function(z, colname) { #crea una matriz de indicadoras, z es catego
 }
 ```
 
-Transformaremos las variables categóricas y las representaremos con "one hot encoding". Así mismo, la variable de respuesta se transformara a una indicadora.
+Nuestra primera idea fue tranformar las variables de tipo factor a indicadores y codificar las variables binarias (con valores "yes" o "no") con ceros y unos. Despues de probar con cada una de las variables categóricas (job, marital, education, contact, poutcom) nos encontramos con el problema de que al intentar calcular las correlaciones canónicas , teníamos matrices numericamente singulares. Inclusive invocando la funcion stats::concor, la ejecución nos regresaba una dirección canónica con coeficientes faltantes.
 
-```{r}
-datac <- data[, c(1,6,10,12,13,14,15)]
-binary_vars <- c(5, 7, 8)
-categorical_vars <- c(2,3,4,9,11,16)
+Para poder avanzar tuvimos que dejar de lado las variables categoricas y realizar el analisis con las variables restantes.Así, trabajamos con los siguientes datos transformados.
 
+```{r, echo=F}
+numeric_vars <- c(1,6,10,12,13,14,15)
+datac <- data[, numeric_vars]
+#binary_vars <- c(5, 7, 8)
+binary_vars <- c( 5,7,8)
+#categorical_vars <- c(2,3,4,9,11,16)
+categorical_vars <- c()
 for (var in binary_vars ){
   datac <- cbind(datac, as.numeric(data[, var] == "yes"))
   colnames(datac)[ncol(datac)] <- colnames(data)[var]
@@ -91,17 +99,43 @@ for( var in categorical_vars){
 }
 
 datac <- cbind(datac, y=as.numeric(data[, 17] == "yes"))
+n_vars <- ncol(datac) - 1
+r <- cor(datac)
+str(datac)
+corrplot(r, method="ellipse")
+
 ```
 
-```{r}
-(cca <- stats::cancor(x = datac[,1:48], y = datac[,49], ycenter =F))
+
+Ahora que tenemos una representación más amigable de los datos, consideramos que para atacar el problema de clasificación procederemos a realizar el análisis de correlación canonica tomando a "y" como uno de los grupos y las demas variables en el otro grupo. Esto se realiza con la intención de utilizar las variables canónicas como sustitutas que permitan representar la relación entre ambos grupos de variables de forma simplificada. 
+
+```{r, echo=F}
+# ca <- function(R, n_vars){
+#   R11 <- R[1:n_vars, 1:n_vars]
+#   R12 <- R[1:n_vars, n_vars+1]
+#   R21 <- R[n_vars +1, 1:n_vars]
+#   R22 <- R[n_vars+1, n_vars+1]
+#   
+#   (A <- solve(R11) %*% R12 %*% solve(R22) %*% R21)
+#   eigen(A)
+#   
+#   (B <- solve(R22) %*% R21 %*% solve(R11) %*% R12)
+#   eigen(B)
+# }
+# 
+# ca(r, n_vars)
 ```
 
-```{r}
+```{r, echo=F}     
+(cca <- stats::cancor(x = datac[,1:(n_vars)], y = datac[,n_vars+1], ycenter =F))
+```
+
+
+```{r, echo=F}
 ind_res <- 1
-regresor <- as.matrix(datac[,1:42]) %*% cca$xcoef[,1]
-respuesta <- datac[,49] %*% cca$ycoef
-plot(regresor, respuesta)
+primer_var_canonica_regresores <- as.matrix(datac[,1:n_vars]) %*% cca$xcoef[,1]
+primer_var_canonica_y <- datac[,n_vars] %*% cca$ycoef
+plot(primer_var_canonica_regresores, primer_var_canonica_y, xlab = "Primer variable canónica del grupo de regresores", ylab = "Primer variable canónica de y")
 ```
 
-
+Las variables canónicas pueden ser utilizadas en un modélo posterior que defina un nivel de corte para la clasificación dentro de las personas que compran o no el servicio
